@@ -1,0 +1,47 @@
+AWSTemplateFormatVersion : '2010-09-09'
+Description: Template for EMR Cluster
+
+Parameters:
+  paramStepPath:
+    Type: String
+
+Resources:
+  ModelCluster:
+    Type: AWS::EMR::Cluster
+    Properties:
+      Name: TwitterModelCluster
+      ReleaseLabel: emr-6.5.0
+      ScaleDownBehavior: TERMINATE_AT_TASK_COMPLETION
+      JobFlowRole: EMR_EC2_DefaultRole
+      ServiceRole: EMR_DefaultRole
+      LogUri: s3://aws-logs-emr/elasticmapreduce/
+      Applications:
+        - Name: Spark
+      Instances:
+        KeepJobFlowAliveWhenNoSteps: false
+        CoreInstanceGroup:
+          InstanceCount: 2
+          InstanceType: m5.xlarge
+          Market: ON_DEMAND
+          Name: coreGroup
+        MasterInstanceGroup:
+          InstanceCount: 1
+          InstanceType: m5.xlarge
+          Market: ON_DEMAND
+          Name: masterGroup
+      Steps:
+        - Name: TwitterModel
+          ActionOnFailure: CANCEL_AND_WAIT
+          HadoopJarStep:
+            Jar: command-runner.jar
+            Args:
+              - spark-submit
+              - --deploy-mode
+              - cluster
+              - --files
+              - s3://twitter.model.resources/twitter_model.app.properties
+              - --class
+              - br.com.geekfox.twitter.App
+              - !Ref paramStepPath
+              - twitter_model.app.properties
+
